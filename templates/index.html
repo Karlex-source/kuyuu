@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>答题卡查看器</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --primary-hover: #357abd;
+            --danger-color: #e74c3c;
+            --success-color: #2ecc71;
+            --bg-color: #f0f2f5; /* 更柔和的背景色 */
+            --font-color: #2c3e50; /* 深色文字 */
+            --card-bg: #ffffff; /* 白色卡片背景 */
+            --border-color: #e1e8ed; /* 更柔和的边框 */
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.16);
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-success: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background-attachment: fixed;
+            color: var(--font-color); 
+            margin: 0; 
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .controls { 
+            max-width: 1400px;
+            margin: 0 auto 30px auto;
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 20px; 
+            padding: 25px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border: none;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(10px);
+        }
+        .search-form { display: flex; width: 100%; max-width: 400px; }
+        .search-form input[type="text"] { 
+            flex: 1;
+            padding: 14px 18px; 
+            font-size: 16px; 
+            border: 2px solid var(--border-color); 
+            background-color: #ffffff; 
+            color: #333; 
+            border-radius: 10px 0 0 10px; 
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        .search-form input[type="text"]:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+        .search-form input::placeholder { color: #999; }
+        .search-form button { 
+            padding: 14px 28px; 
+            font-size: 16px; 
+            background: var(--gradient-primary);
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            border-radius: 0 10px 10px 0; 
+            white-space: nowrap;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+        }
+        .search-form button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .search-form button:active {
+            transform: translateY(0);
+        }
+        .subject-buttons { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 10px; 
+            align-items: center;
+        }
+        .subject-buttons strong { 
+            margin-right: 12px; 
+            color: #2c3e50; 
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .subject-buttons button { 
+            padding: 12px 20px; 
+            font-size: 14px; 
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            color: #495057; 
+            border: 2px solid var(--border-color); 
+            cursor: pointer; 
+            border-radius: 10px; 
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: var(--shadow-sm);
+        }
+        .subject-buttons button:hover { 
+            background: var(--gradient-primary);
+            border-color: transparent; 
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .subject-buttons button:active {
+            transform: translateY(0);
+        }
+        .error { 
+            text-align: center; 
+            color: #ffffff; 
+            font-weight: 600; 
+            margin: 20px auto; 
+            max-width: 1400px; 
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            padding: 18px 24px; 
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .result-header { 
+            text-align: center; 
+            margin-bottom: 30px; 
+            padding: 30px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border: none;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .result-header h2 {
+            margin: 0 0 12px 0;
+            font-size: 28px;
+            color: #2c3e50;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .result-header p {
+            margin: 0;
+            font-size: 15px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        .result-header .total-score-header {
+            margin-top: 20px;
+            font-size: 32px;
+            font-weight: 700;
+            background: var(--gradient-success);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            padding: 10px;
+        }
+        
+        /* 大框容器：答题卡展示区域 - 模仿真实答题卡样式 */
+        .paper-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: #ffffff; /* 白色背景，像真实答题卡 */
+            border: none;
+            border-radius: 16px; /* 圆角边框，更现代 */
+            padding: 0;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            animation: fadeIn 0.6s ease;
+        }
+        
+        /* 答题卡列表：垂直排列，无缝衔接 */
+        .items-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* 单个答题卡容器：无缝衔接，模仿答题卡样式 */
+        .item-card {
+            position: relative;
+            background-color: #ffffff; /* 白色背景 */
+            border: none;
+            border-bottom: 1px solid #e0e0e0; /* 题目之间的分隔线 */
+            border-radius: 0;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        .item-card:last-child {
+            border-bottom: none; /* 最后一项不需要底部分隔线 */
+        }
+        .item-card:hover {
+            opacity: 0.95;
+        }
+        
+        /* 题号标签 - 模仿答题卡样式 */
+        .item-label {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 249, 250, 0.98) 100%);
+            color: #2c3e50; /* 深色文字 */
+            padding: 10px 18px;
+            border: 2px solid var(--primary-color); /* 主题色边框 */
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 16px;
+            z-index: 11;
+            box-shadow: var(--shadow-md);
+            backdrop-filter: blur(10px);
+        }
+        
+        /* 图片容器：无缝衔接，模仿答题卡样式 */
+        .image-wrapper {
+            position: relative;
+            width: 100%;
+            background-color: #fafafa; /* 浅灰色背景，像答题卡 */
+            display: block;
+            margin: 0;
+            padding: 0;
+            font-size: 0; /* 移除图片间的幽灵间隙 */
+            line-height: 0; /* 移除行高造成的间隙 */
+            border-left: 3px solid var(--primary-color); /* 主题色左侧边框 */
+            border-right: 3px solid var(--primary-color); /* 主题色右侧边框 */
+        }
+        .image-wrapper img {
+            width: 100%;
+            height: auto;
+            display: block;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff; /* 图片背景为白色 */
+        }
+        
+        /* 分数覆盖层：最终分在左上角，一评二评在右上角 */
+        .score-overlay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.96) 0%, rgba(192, 57, 43, 0.96) 100%);
+            color: white;
+            padding: 14px 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            z-index: 10;
+            min-width: 180px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        /* 最终分显示在红色框（一评二评）的左边 */
+        .score-overlay-final {
+            position: absolute;
+            top: 10px;
+            right: 200px; /* 在一评二评红色框的左边 */
+            background: linear-gradient(135deg, rgba(74, 144, 226, 0.96) 0%, rgba(53, 122, 189, 0.96) 100%);
+            color: white;
+            padding: 14px 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            min-width: 110px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .score-overlay-final .total-score {
+            font-size: 28px;
+            font-weight: bold;
+            display: block;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+            line-height: 1.2;
+        }
+        .score-overlay .total-score {
+            display: none; /* 隐藏右上角的最终分 */
+        }
+        .score-overlay .sub-scores {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 0;
+        }
+        .score-overlay .time-info {
+            font-size: 11px;
+            opacity: 0.8;
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+            .controls {
+                padding: 10px;
+                gap: 10px;
+            }
+            .search-form {
+                max-width: 100%;
+            }
+            .search-form input[type="text"] {
+                font-size: 16px; /* 防止iOS自动缩放 */
+            }
+            .subject-buttons {
+                width: 100%;
+                justify-content: center;
+            }
+            .paper-container {
+                padding: 0;
+                border-width: 2px;
+            }
+            .items-list {
+                gap: 0;
+            }
+            .item-label {
+                font-size: 12px;
+                padding: 4px 8px;
+                top: 5px;
+                left: 5px;
+            }
+            .score-overlay-final {
+                top: 10px;
+                right: 160px; /* 移动端也保持在一评二评框的左边 */
+                padding: 10px 14px;
+                min-width: 90px;
+            }
+            .score-overlay-final .total-score {
+                font-size: 24px;
+            }
+            .score-overlay {
+                top: 5px;
+                right: 5px;
+                padding: 8px 12px;
+                min-width: 140px;
+            }
+            .score-overlay .sub-scores {
+                font-size: 11px;
+            }
+            .score-overlay .time-info {
+                font-size: 10px;
+            }
+            .result-header h2 {
+                font-size: 20px;
+            }
+            .result-header p {
+                font-size: 12px;
+            }
+            .result-header .total-score-header {
+                font-size: 32px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .score-overlay-final {
+                top: 10px;
+                right: 140px;
+                padding: 8px 12px;
+                min-width: 70px;
+            }
+            .score-overlay-final .total-score {
+                font-size: 20px;
+            }
+            .result-header .total-score-header {
+                font-size: 28px;
+            }
+            .score-overlay {
+                min-width: 120px;
+                padding: 6px 10px;
+            }
+            .score-overlay .sub-scores {
+                font-size: 10px;
+            }
+        }
+
+        #loader { 
+            display: none; 
+            text-align: center; 
+            margin: 40px; 
+            font-size: 18px; 
+            color: var(--font-color);
+            font-weight: 600;
+        }
+        #loader::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <form action="/query" method="POST" class="search-form">
+            <input type="text" name="paperid" placeholder="请输入试卷ID查询" required>
+            <button type="submit">查询</button>
+        </form>
+        
+        <div class="subject-buttons">
+            <strong>随机查看：</strong>
+            {% set subject_order = ['语文', '数学', '英语', '物理', '化学', '生物', '政治', '历史', '地理'] %}
+            {% for subject in subject_order %}
+                {% if subject in subjects %}
+                    <button onclick="getRandomPaper('{{ subject }}')">{{ subject }}</button>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="loader">加载中...</div>
+
+    <div id="result-container">
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+
+        {% if result %}
+            <div class="result-header">
+                <h2>{{ result.subject }}</h2>
+                <p>试卷ID: {{ result.paperid }} | 考试ID: {{ result.examid }}</p>
+                <div class="total-score-header">主观题总分: {{ result.total_score }} 分</div>
+            </div>
+
+            <div class="paper-container">
+                <div class="items-list">
+                    {% for item in result.items %}
+                        <div class="item-card" data-item-id="{{ item.item_id }}" data-exam-id="{{ result.examid }}" data-paper-id="{{ result.paperid }}" data-libid="{{ item.libid }}">
+                            <div class="item-label">题号 {{ item.item_id }}</div>
+                            <div class="image-wrapper">
+                                <a href="{{ item.url }}" target="_blank" title="点击查看大图">
+                                    <img src="{{ item.url }}" alt="题号 {{ item.item_id }} 的答题卡图片" loading="lazy">
+                                </a>
+                                <!-- 最终分显示在左上角 -->
+                                <div class="score-overlay-final">
+                                    <span class="total-score">{{ item.score }} 分</span>
+                                </div>
+                                <!-- 一评二评显示在右上角 -->
+                                <div class="score-overlay">
+                                    <div class="sub-scores">一评: <span class="score1">{{ item.score1 }}</span> | 二评: <span class="score2">{{ item.score2 }}</span></div>
+                                    <div class="time-info">{{ item.score_time }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // 异步加载双评得分
+        function loadDoubleScores() {
+            const itemCards = document.querySelectorAll('.item-card[data-item-id]');
+            itemCards.forEach(card => {
+                const itemId = card.getAttribute('data-item-id');
+                const examId = card.getAttribute('data-exam-id');
+                const paperId = card.getAttribute('data-paper-id');
+                const libid = card.getAttribute('data-libid');
+                
+                if (!libid || libid === 'None') {
+                    return; // 跳过没有libid的题目
+                }
+                
+                // 异步获取双评得分
+                fetch(`/api/double-scores/${examId}/${paperId}/${itemId}/${libid}`)
+                    .then(response => response.ok ? response.json() : Promise.reject(response))
+                    .then(data => {
+                        if (data.error) {
+                            console.error(`获取item_id=${itemId}的双评得分失败:`, data.error);
+                            return;
+                        }
+                        
+                        // 更新一评和二评
+                        const score1Element = card.querySelector('.score1');
+                        const score2Element = card.querySelector('.score2');
+                        const finalScoreElement = card.querySelector('.score-overlay-final .total-score');
+                        
+                        if (score1Element && data.score1 !== undefined && data.score1 !== 'N/A') {
+                            score1Element.textContent = data.score1;
+                        }
+                        if (score2Element && data.score2 !== undefined && data.score2 !== 'N/A') {
+                            score2Element.textContent = data.score2;
+                        }
+                        
+                        // 如果有新的最终分，更新它
+                        if (finalScoreElement && data.score !== undefined) {
+                            finalScoreElement.textContent = data.score + ' 分';
+                        }
+                    })
+                    .catch(error => {
+                        console.error(`获取item_id=${itemId}的双评得分失败:`, error);
+                    });
+            });
+        }
+
+        function getRandomPaper(subjectName) {
+            const loader = document.getElementById('loader');
+            const resultContainer = document.getElementById('result-container');
+            const paperInput = document.querySelector('input[name="paperid"]');
+            const defaultPlaceholder = '请输入试卷ID查询';
+            
+            loader.style.display = 'block';
+            resultContainer.innerHTML = '';
+
+            fetch(`/random/${subjectName}`)
+                .then(response => response.ok ? response.json() : Promise.reject(response))
+                .then(data => {
+                    loader.style.display = 'none';
+                    // 恢复默认提示词
+                    if (paperInput) {
+                        paperInput.placeholder = defaultPlaceholder;
+                    }
+                    if (data.error) {
+                        resultContainer.innerHTML = `<p class="error">${data.error}</p>`;
+                    } else {
+                        let html = `
+                            <div class="result-header">
+                                <h2>${data.subject}</h2>
+                                <p>试卷ID: ${data.paperid} | 考试ID: ${data.examid}</p>
+                                <div class="total-score-header">主观题总分: ${data.total_score || 0} 分</div>
+                            </div>
+                            <div class="paper-container">
+                                <div class="items-list">`;
+                        
+                        data.items.forEach(item => {
+                            html += `
+                                <div class="item-card" data-item-id="${item.item_id}" data-exam-id="${data.examid}" data-paper-id="${data.paperid}" data-libid="${item.libid || ''}">
+                                    <div class="item-label">题号 ${item.item_id}</div>
+                                    <div class="image-wrapper">
+                                        <a href="${item.url}" target="_blank" title="点击查看大图">
+                                            <img src="${item.url}" alt="题号 ${item.item_id} 的答题卡图片" loading="lazy">
+                                        </a>
+                                        <!-- 最终分显示在左上角 -->
+                                        <div class="score-overlay-final">
+                                            <span class="total-score">${item.score} 分</span>
+                                        </div>
+                                        <!-- 一评二评显示在右上角 -->
+                                        <div class="score-overlay">
+                                            <div class="sub-scores">一评: <span class="score1">${item.score1}</span> | 二评: <span class="score2">${item.score2}</span></div>
+                                            <div class="time-info">${item.score_time}</div>
+                                        </div>
+                                    </div>
+                                </div>`;
+                        });
+
+                        html += `
+                                </div>
+                            </div>`;
+                        resultContainer.innerHTML = html;
+                        
+                        // 异步加载双评得分
+                        setTimeout(loadDoubleScores, 100);
+                    }
+                })
+                .catch(error => {
+                    loader.style.display = 'none';
+                    // 恢复默认提示词
+                    const paperInput = document.querySelector('input[name="paperid"]');
+                    if (paperInput) {
+                        paperInput.placeholder = '请输入试卷ID查询';
+                    }
+                    resultContainer.innerHTML = `<p class="error">请求失败: ${error.statusText || error.message}</p>`;
+                });
+        }
+        
+        // 页面加载完成后，如果有结果，异步加载双评得分
+        // 如果没有结果，自动加载随机试卷
+        document.addEventListener('DOMContentLoaded', function() {
+            const resultContainer = document.getElementById('result-container');
+            const hasResult = resultContainer.querySelector('.result-header');
+            
+            if (hasResult) {
+                // 如果有结果，异步加载双评得分
+                setTimeout(loadDoubleScores, 500);
+            } else {
+                // 如果没有结果，自动加载随机试卷
+                autoLoadRandomPaper();
+            }
+        });
+        
+        // 自动加载随机试卷
+        function autoLoadRandomPaper() {
+            try {
+                // 从服务器端获取科目列表（Jinja2模板渲染）
+                const subjects = {{ subjects | tojson }};
+                if (!subjects || !Array.isArray(subjects) || subjects.length === 0) {
+                    console.log('没有可用的科目列表');
+                    return; // 如果没有可用科目，不执行
+                }
+                
+                // 随机选择一个科目
+                const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+                
+                // 自动填充到输入框
+                const paperInput = document.querySelector('input[name="paperid"]');
+                if (paperInput) {
+                    paperInput.placeholder = `正在加载 ${randomSubject} 随机试卷...`;
+                }
+                
+                // 调用随机试卷接口
+                getRandomPaper(randomSubject);
+            } catch (error) {
+                console.error('自动加载随机试卷失败:', error);
+            }
+        }
+    </script>
+</body>
+</html>
