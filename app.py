@@ -2,6 +2,7 @@ import json
 import random
 import time
 import os
+import urllib.parse
 import requests
 from flask import Flask, render_template, request, g, jsonify
 
@@ -121,6 +122,9 @@ def query_paper():
 @app.route('/random/<subject_name>')
 def random_paper(subject_name):
     """处理按科目随机获取试卷的请求 (返回JSON)"""
+    # 解码 URL 编码的科目名称（处理中文字符）
+    subject_name = urllib.parse.unquote(subject_name)
+    
     conn = get_db()
     if conn is None:
         return jsonify({"error": "数据库连接失败"}), 500
