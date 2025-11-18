@@ -1,6 +1,7 @@
 import json
 import random
 import time
+import os
 import requests
 from flask import Flask, render_template, request, g, jsonify
 
@@ -8,23 +9,26 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 # 初始化Flask应用
-app = Flask(__name__)
+# 确保模板路径正确（对于 Vercel 部署）
+app = Flask(__name__, template_folder='templates')
 
 # --- 数据库配置 ---
+# 从环境变量读取配置，如果没有则使用默认值（开发环境）
 DB_CONFIG = {
-    "dbname": "examdb",
-    "user": "karlex",
-    "password": "828124@ZBL",
-    "host": "8.154.86.53",
-    "port": "5432"
+    "dbname": os.getenv("DB_NAME", "examdb"),
+    "user": os.getenv("DB_USER", "karlex"),
+    "password": os.getenv("DB_PASSWORD", "828124@ZBL"),
+    "host": os.getenv("DB_HOST", "8.154.86.53"),
+    "port": os.getenv("DB_PORT", "5432")
 }
 
 # --- 应用级变量 ---
 SUBJECTS = [] # 用于存储从数据库加载的科目列表
 
 # --- API配置 ---
-API_BASE_URL = "https://yunyj.linyi.net/api/read/getlog"
-API_TOKEN = "gzEx3e-ySUy3XGgzsKOZtw"
+# 从环境变量读取配置，如果没有则使用默认值
+API_BASE_URL = os.getenv("API_BASE_URL", "https://yunyj.linyi.net/api/read/getlog")
+API_TOKEN = os.getenv("API_TOKEN", "gzEx3e-ySUy3XGgzsKOZtw")
 # 科目名称到libid的映射（需要根据实际情况配置）
 SUBJECT_LIBID_MAP = {
     "语文": 1,
@@ -506,7 +510,9 @@ def get_double_scores_api(exam_id, paper_id, item_id, libid):
         return jsonify({'error': str(e)}), 500
 
 # --- 启动应用 ---
+# 在应用启动时加载科目列表（适用于所有环境）
+with app.app_context():
+    load_subjects()
+
 if __name__ == '__main__':
-    with app.app_context():
-        load_subjects() # 应用启动时预加载科目列表
     app.run(host='0.0.0.0', port=5000, debug=True)
