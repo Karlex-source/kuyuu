@@ -13,3 +13,6 @@ from app import app
 # Vercel Python runtime expects the app to be exported directly
 # The app object will be used as the WSGI application
 
+# Export for Vercel
+__all__ = ['app']
+
